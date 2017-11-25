@@ -1,0 +1,147 @@
+// API for Ubiquant Hackathon Priliminary
+//
+// Copyright 2017 Ubiquant Investment Ltd.
+
+syntax = "proto3";
+
+//////////////////////////////////////////////////////////////////////////////
+// Services
+//////////////////////////////////////////////////////////////////////////////
+
+// Public API for traders
+service Broker {
+    // Submits a new order to a Broker.
+    rpc new_order (TraderRequest) returns (TraderResponse);
+}
+
+// Provides access to real-time market data
+service MarketData {
+    // Subscribes to a feed of market snapshots.
+    rpc subscribe (Empty) returns (stream MarketSnapshot);
+}
+
+
+//////////////////////////////////////////////////////////////////////////////
+// Constants
+//////////////////////////////////////////////////////////////////////////////
+
+// Trading direction.
+enum Side {
+    BID = 0;    // i.e. buy
+    ASK = 1;    // i.e. sell
+}
+
+// Type of a position in a trader's portfolio.
+enum PositionType {
+    LONG = 0;
+    SHORT = 1;
+}
+
+// Specific return codes.
+enum ResultCode {
+    OK = 0;
+
+    // 1-99: generic errors.
+
+    UNKNOWN_ERROR = 99;
+
+    // 1xx: server-side errors
+
+    SERVICE_UNAVAILABLE = 100;
+
+    REGISTER_DISABLED = 120;
+
+    // 2xx: client-side errors
+
+    INVALID_REQUEST = 200;
+    UNAUTHORIZED = 201;
+    UNSUBSCRIBED = 202;
+
+    TOO_MANY_REQUESTS = 210;
+    TOO_MANY_ORDERS = 211;
+
+    INVALID_ORDER = 220;
+    INVALID_BROKER_ID = 221;
+    INVALID_ORDER_ID = 222;
+    INVALID_TRADER_ID = 223;
+    INVALID_TRADER_NAME = 224;
+    INVALID_SYMBOL = 241;
+    INVALID_PRICE = 242;
+    INVALID_VOLUME = 243;
+    INVALID_SIDE = 244;
+    INVALID_POSITION = 245;
+
+    INSUFFICIENT_ASSETS = 260;
+
+    ACCOUNT_DISABLED = 270;
+    ON_MARGIN_CALL = 271;
+}
+
+
+//////////////////////////////////////////////////////////////////////////////
+// Message types
+//////////////////////////////////////////////////////////////////////////////
+
+// A "void" message type for RPCs that do not require a request/response.
+message Empty {}
+
+// Request to add a new order to the Broker.
+message TraderRequest {
+    int32 trader_id = 1;    // The ID assigned to you
+    string trader_pin = 2;  // The PIN assigned to you
+
+    Side side = 6;
+    string symbol = 7;
+    int32 volume = 8;
+    double price = 9;
+    PositionType pos_type = 11;
+}
+
+// For a successfully placed order, result_code should be OK.
+message TraderResponse {
+    double timestamp = 1;
+    ResultCode result_code = 2;
+}
+
+
+// A single price level in an orderbook.
+message QuoteRecord {
+    double price = 1;
+    int32 volume = 2;
+    int32 order_count = 3;
+}
+
+// A single matched trade price and volume in an order-matching process.
+message TradeRecord {
+    double timestamp = 1;
+    double price = 2;
+    int32 volume = 3;
+}
+
+// Snapshot of an instrument's orderbook.
+message OrderBookSnapshot {
+    string symbol = 1;
+    double timestamp = 2;
+
+    double last_price = 4;  // Current price of the instrument
+    int64 traded_volume = 5;
+
+    int64 bid_volume = 6;
+    int64 ask_volume = 7;
+
+    int32 bid_order_count = 8;
+    int32 ask_order_count = 9;
+
+    int32 bid_depth = 10;
+    int32 ask_depth = 11;
+
+    repeated QuoteRecord bid_levels = 12;
+    repeated QuoteRecord ask_levels = 13;
+
+    repeated TradeRecord last_trades = 14;
+}
+
+// Snapshot of multiple instrument orderbooks.
+message MarketSnapshot {
+    repeated OrderBookSnapshot instruments = 2;
+}
